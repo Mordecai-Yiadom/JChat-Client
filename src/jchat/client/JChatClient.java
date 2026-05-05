@@ -7,24 +7,23 @@ import java.net.*;
 public class JChatClient
 {
     private Socket socket;
-    private static final String CONNECTION_STRING = "ec2-100-54-199-217.compute-1.amazonaws.com";
+
 
     public JChatClient(String host, int port)
     {
         try
         {
+            System.out.println(String.format("Client Connecting on %s:%d ...\n", host, port));
             socket = new Socket(host, port);
         }
         catch(IOException e)
         {
             e.printStackTrace();
         }
+
+
     }
 
-    public JChatClient()
-    {
-        this(CONNECTION_STRING, 2005);
-    }
 
     public void connectToHost()
     {
