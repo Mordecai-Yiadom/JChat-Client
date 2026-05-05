@@ -12,7 +12,7 @@ public class ClientWindow extends JFrame
         setResizable(false);
         setVisible(true);
         setTitle(DEFAULT_WINDOW_TITLE);
-        setDefaultCloseOperation(JFrame.DISPOSE_ON_CLOSE);
+        setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
     }
 
 

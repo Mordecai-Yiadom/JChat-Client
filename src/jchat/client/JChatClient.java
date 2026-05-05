@@ -1,7 +1,6 @@
 package jchat.client;
 
-import java.io.IOException;
-import java.io.PrintWriter;
+import java.io.*;
 import java.net.*;
 
 public class JChatClient
@@ -13,7 +12,7 @@ public class JChatClient
     {
         try
         {
-            System.out.println(String.format("Client Connecting on %s:%d ...\n", host, port));
+            System.out.printf("Client Connecting on %s:%d ...\n", host, port);
             socket = new Socket(host, port);
         }
         catch(IOException e)
@@ -24,18 +23,6 @@ public class JChatClient
 
     }
 
-
-    public void connectToHost()
-    {
-        try
-        {
-            socket.connect(null);
-        }
-        catch (IOException e)
-        {
-            e.printStackTrace();
-        }
-    }
 
     public void sendMessage(String message)
     {
@@ -50,6 +37,22 @@ public class JChatClient
         {
             ex.printStackTrace();
         }
+    }
+
+    public String receiveMessage()
+    {
+        String message = null;
+        try
+        {
+            ObjectInputStream inputStream = new ObjectInputStream(socket.getInputStream());
+
+            message = (String) inputStream.readObject();
+        }
+        catch (Exception ex)
+        {
+            ex.printStackTrace();
+        }
+        return message;
     }
 
 

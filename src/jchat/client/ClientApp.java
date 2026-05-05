@@ -14,14 +14,15 @@ public class ClientApp
     {
         System.out.println("Running JChat Client");
 
-        clientWindow = new ClientWindow();
+        //clientWindow = new ClientWindow();
         ConfigFileParser parser = new ConfigFileParser(".env");
 
         client = new JChatClient(parser.getString("Remote-Host"),
                 parser.getInteger("Remote-Port"));
 
-        client.sendMessage("WHATS GOOD BRO!!!!");
-
+        //client.sendMessage("WHATS GOOD BRO!!!!");
+        System.out.printf("<Server> %s\n", client.receiveMessage());
+        System.out.printf("<Server> %s\n", client.receiveMessage());
 
     }
 
