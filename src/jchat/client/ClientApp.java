@@ -3,6 +3,8 @@ package jchat.client;
 import jchat.client.ui.ClientWindow;
 import jchat.core.ConfigFileParser;
 
+import java.util.Scanner;
+
 public class ClientApp
 {
     private static JChatClient client;
@@ -17,13 +19,20 @@ public class ClientApp
         //clientWindow = new ClientWindow();
         ConfigFileParser parser = new ConfigFileParser(".env");
 
-        client = new JChatClient(parser.getString("Remote-Host"),
+        client = new JChatClient();
+
+        client.start(parser.getString("Remote-Host"),
                 parser.getInteger("Remote-Port"));
 
-        //client.sendMessage("WHATS GOOD BRO!!!!");
-        System.out.printf("<Server> %s\n", client.receiveMessage());
-        System.out.printf("<Server> %s\n", client.receiveMessage());
+        Scanner scanner = new Scanner(System.in);
 
+        while(client.isRunning())
+        {
+            if(scanner.hasNextLine())
+                client.sendMessage(scanner.nextLine());
+        }
+
+        client.waitForExit();
     }
 
 
