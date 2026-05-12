@@ -1,33 +1,38 @@
 package jchat.client;
 
+import jchat.core.net.entity.JChatTextMessage;
+import jchat.core.net.entity.JChatUserLoginCredentials;
+import jchat.core.net.protocol.JChatProtocolUtil;
+import jchat.core.net.protocol.tcp.JChatClientLoginRequestPacket;
+import jchat.core.net.protocol.tcp.JChatClientMessagePacket;
+import jchat.core.net.protocol.tcp.JChatTCPPacket;
+
 import java.io.*;
 import java.net.*;
 import java.nio.ByteBuffer;
 import java.nio.channels.SelectionKey;
 import java.nio.channels.Selector;
 import java.nio.channels.SocketChannel;
-import java.util.ArrayDeque;
-import java.util.ArrayList;
-import java.util.Queue;
-import java.util.Scanner;
+import java.util.Map;
 
-public class JChatClient
-{
+public class JChatClient {
     private SocketChannel socket;
     private boolean isRunning;
     private Selector selector;
-    private Queue<String> messageQueue;
     private Thread clientThread;
+    private JChatUserLoginCredentials credentials;
+    private boolean isLoggedIn;
 
-    public JChatClient()
-    {
+
+    public JChatClient(JChatUserLoginCredentials credentials) {
+        this.credentials = credentials;
         isRunning = false;
     }
 
-    public void start(String host, int port)
-    {
+
+    public void start(String host, int port) {
         isRunning = true;
-        clientThread = new Thread(()->
+        clientThread = new Thread(() ->
         {
             connectToServer(host, port);
             pollServerResponses();
@@ -35,90 +40,63 @@ public class JChatClient
         clientThread.start();
     }
 
-    public void stop()
-    {
+    public void stop() {
         isRunning = false;
     }
 
-    public boolean isRunning()
-    {
+    public boolean isRunning() {
         return isRunning;
     }
 
-    public void waitForExit()
-    {
-        try
-        {
+    public void waitForExit() {
+        try {
             clientThread.join();
-        }
-        catch(InterruptedException ex)
-        {
+        } catch (InterruptedException ex) {
             ex.printStackTrace();
         }
     }
 
-    public void sendMessage(String message)
-    {
-        try
-        {
-            ByteBuffer byteBuffer = ByteBuffer.allocate(message.getBytes().length);
-            byteBuffer.clear().put(message.getBytes()).flip();
-
-            while(byteBuffer.hasRemaining())
-            {
-                socket.write(byteBuffer);
-            }
-
-            System.out.printf("[Client Info] Message sent to %s\n", socket.getRemoteAddress().toString());
-        }
-        catch (IOException ex)
-        {
+    public void sendMessage(String message) {
+        try {
+            JChatProtocolUtil.sendJChatTCPPacket(
+                    JChatClientMessagePacket.create(
+                            new JChatTextMessage(credentials.username(), message)), socket);
+        } catch (IOException ex) {
             ex.printStackTrace();
         }
     }
 
 
-
-    private void connectToServer(String host, int port)
-    {
-        try
-        {
+    private void connectToServer(String host, int port) {
+        try {
             selector = Selector.open();
             socket = SocketChannel.open();
             socket.connect(new InetSocketAddress(host, port));
 
-            if(socket.isConnected()) System.out.println("Client Socket connected");
+            if (socket.isConnected()) System.out.println("Client Socket connected");
             socket.configureBlocking(false);
             socket.register(selector, SelectionKey.OP_READ);
 
-        }
-        catch (Exception ex)
-        {
+            sendLoginRequest();
+
+        } catch (Exception ex) {
             ex.printStackTrace();
         }
     }
 
-    private void pollServerResponses()
-    {
-        sendMessage("What's good paul.");
-        while(isRunning)
-        {
-            try
-            {
+    private void pollServerResponses() {
+        while (isRunning) {
+            try {
                 selector.select();
 
-                for(SelectionKey key : selector.selectedKeys())
-                {
-                    if(key.isReadable())
-                    {
-                        System.out.printf("<Server> %s\n", readResponse());
+                for (SelectionKey key : selector.selectedKeys()) {
+                    if (key.isReadable()) {
+                        readPackets((SocketChannel) key.channel());
                     }
                 }
 
                 selector.selectedKeys().clear();
-            }
-            catch (Exception ex)
-            {
+            } catch (Exception ex) {
                 ex.printStackTrace();
             }
         }
@@ -126,45 +104,63 @@ public class JChatClient
         closeConnection();
     }
 
-    private void closeConnection()
-    {
-        try
-        {
+    private void closeConnection() {
+        try {
             socket.close();
-        }
-        catch(IOException ex)
-        {
+        } catch (IOException ex) {
             ex.printStackTrace();
         }
     }
 
-    private String readResponse()
-    {
+    private String readPackets(SocketChannel socketChannel) {
         StringBuilder message = new StringBuilder();
 
-        try
-        {
+        try {
+            for (JChatTCPPacket packet : JChatProtocolUtil.readJChatTCPPacket(socketChannel)) {
+                switch (packet.getPacketCode()) {
+                    case SERVER_GENERATED_MESSAGE:
+                    case CLIENT_GENERATED_MESSAGE:
+                        onTextMessageReceived(packet);
+                        break;
 
-            ByteBuffer byteBuffer = ByteBuffer.allocate(1024);
-            byteBuffer.clear();
-            int bytesRead = 0;
+                    case CLIENT_CONNECTION_ACCEPTED_RESPONSE:
+                        onLoginAccepted();
+                        break;
 
-            bytesRead += socket.read(byteBuffer);
-
-
-            for(int i = 0; i < byteBuffer.array().length; i++)
-            {
-                char c = (char) byteBuffer.array()[i];
-                if(c == '\0') break;
-                message.append(c);
+                    case CLIENT_CONNECTION_REJECTED_RESPONSE:
+                        onLoginRejected();
+                        break;
+                }
             }
-
-        }
-        catch (Exception ex)
-        {
+        } catch (Exception ex) {
             ex.printStackTrace();
             return null;
         }
         return message.toString();
+    }
+
+    private void sendLoginRequest() throws IOException
+    {
+        JChatProtocolUtil.sendJChatTCPPacket(
+                JChatClientLoginRequestPacket.create(credentials.username(), credentials.password()),
+                socket);
+    }
+
+    private void onTextMessageReceived(JChatTCPPacket packet)
+    {
+        JChatTextMessage message = JChatClientMessagePacket.parseTextMessage(packet);
+        System.out.printf("<%s> %s\n", message.getSender(), message.getMessage());
+    }
+
+    private void onLoginAccepted()
+    {
+        this.isLoggedIn = true;
+        System.out.println("[Client INFO]: Login Successful!");
+    }
+
+    private void onLoginRejected() throws IOException
+    {
+        System.out.println("[Client INFO]: Failed to log in to server. Invalid credentials.");
+        socket.close();
     }
 }

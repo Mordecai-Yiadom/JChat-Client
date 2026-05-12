@@ -1,25 +1,36 @@
 package jchat.client;
 
 import jchat.client.ui.ClientWindow;
-import jchat.core.ConfigFileParser;
-
+import jchat.core.net.entity.JChatUserLoginCredentials;
+import jchat.core.util.ConfigFileParser;
 import java.util.Scanner;
 
 public class ClientApp
 {
-    private static JChatClient client;
-    private static ClientWindow clientWindow;
+    private static ClientApp INSTANCE;
 
+    private JChatClient client;
+    private ClientWindow clientWindow;
 
+    private ClientApp()
+    {}
 
-    public static void main(String[] args)
+    public static ClientApp instance()
+    {
+        if(INSTANCE == null)
+            INSTANCE = new ClientApp();
+        return INSTANCE;
+    }
+
+    public void start()
     {
         System.out.println("Running JChat Client");
 
-        //clientWindow = new ClientWindow();
+        clientWindow = new ClientWindow();
         ConfigFileParser parser = new ConfigFileParser(".env");
 
-        client = new JChatClient();
+        client = new JChatClient(new JChatUserLoginCredentials(parser.getString("Username"),
+                parser.getString("Password")));
 
         client.start(parser.getString("Remote-Host"),
                 parser.getInteger("Remote-Port"));
@@ -34,6 +45,4 @@ public class ClientApp
 
         client.waitForExit();
     }
-
-
 }

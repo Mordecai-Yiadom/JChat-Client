@@ -1,4 +1,5 @@
 Manifest-Version: 1.0
-Main-Class: jchat.client.ClientApp
+Main-Class: jchat.client.ClientBootstrap
 Created-By: Mordecai Yiadom
+Class-Path: JChatCore.jar
 
