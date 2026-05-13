@@ -6,22 +6,55 @@ import java.awt.*;
 public class ClientWindow extends JFrame
 {
     private static final String DEFAULT_WINDOW_TITLE = "JChat Client";
+
+    private ChatRoomUI chatRoomUI;
+    private LoginPage loginPage;
+
+    private JChatUIScreen CURRENT_SCREEN;
+
     public ClientWindow()
     {
         super();
         setSize(900, 700);
-        setResizable(false);
-        setVisible(true);
+        setPreferredSize(new Dimension(900, 700));
+        setResizable(true);
         setTitle(DEFAULT_WINDOW_TITLE);
         setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
 
-//        //getContentPane().setLayout(new GridLayout(4, 4));
-//        getContentPane().setBackground(JChatUIConstants.BACKGROUND_COLOR);
-//        getContentPane().add(new ChatInputTextField());
-//        getContentPane().add(new ChatMessageTextView());
+        this.chatRoomUI = new ChatRoomUI();
+        this.loginPage = new LoginPage();
 
+        showLoginPage();
+
+        setVisible(true);
     }
 
+    public ChatRoomUI getChatRoomUI()
+    {
+        return chatRoomUI;
+    }
 
+    public LoginPage getLoginPage()
+    {
+        return loginPage;
+    }
+
+    private void setUIScreen(JChatUIScreen screen)
+    {
+        CURRENT_SCREEN = screen;
+        setContentPane(CURRENT_SCREEN.root());
+        repaint();
+        revalidate();
+    }
+
+    public void showLoginPage()
+    {
+        setUIScreen(loginPage);
+    }
+
+    public void showChatRoomUI()
+    {
+        setUIScreen(chatRoomUI);
+    }
 
 }

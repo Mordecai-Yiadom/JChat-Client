@@ -13,7 +13,10 @@ public class ClientApp
     private ClientWindow clientWindow;
 
     private ClientApp()
-    {}
+    {
+        clientWindow = new ClientWindow();
+        System.out.println("[Client INFO]: Starting JChat UI");
+    }
 
     public static ClientApp instance()
     {
@@ -22,27 +25,25 @@ public class ClientApp
         return INSTANCE;
     }
 
-    public void start()
+    public void start(String username, String password)
     {
-        System.out.println("Running JChat Client");
+        System.out.println("[Client INFO]: Starting JChat Net Client");
 
-        clientWindow = new ClientWindow();
         ConfigFileParser parser = new ConfigFileParser(".env");
 
-        client = new JChatClient(new JChatUserLoginCredentials(parser.getString("Username"),
-                parser.getString("Password")));
+        client = new JChatClient(new JChatUserLoginCredentials(username, password));
 
         client.start(parser.getString("Remote-Host"),
                 parser.getInteger("Remote-Port"));
+    }
 
-        Scanner scanner = new Scanner(System.in);
+    public ClientWindow getClientWindow() {
 
-        while(client.isRunning())
-        {
-            if(scanner.hasNextLine())
-                client.sendMessage(scanner.nextLine());
-        }
+        return clientWindow;
+    }
 
-        client.waitForExit();
+    public JChatClient getChatClient()
+    {
+        return client;
     }
 }
