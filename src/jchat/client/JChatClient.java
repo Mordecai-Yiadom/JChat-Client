@@ -1,5 +1,6 @@
 package jchat.client;
 
+import jchat.client.ui.ChatRoomMessagePanel;
 import jchat.core.net.entity.JChatTextMessage;
 import jchat.core.net.entity.JChatUserCredentials;
 import jchat.core.net.protocol.JChatProtocolUtil;
@@ -156,8 +157,10 @@ public class JChatClient
             for (JChatTCPPacket packet : JChatProtocolUtil.readJChatTCPPacket(socketChannel)) {
                 switch (packet.getPacketCode()) {
                     case SERVER_GENERATED_MESSAGE:
+                        onTextServerMessageReceived(packet);
+                        break;
                     case CLIENT_GENERATED_MESSAGE:
-                        onTextMessageReceived(packet);
+                        onTextClientMessageReceived(packet);
                         break;
 
                     case CLIENT_CONNECTION_ACCEPTED_RESPONSE:
@@ -203,14 +206,25 @@ public class JChatClient
         }
     }
 
-    private void onTextMessageReceived(JChatTCPPacket packet)
+    private void onTextClientMessageReceived(JChatTCPPacket packet)
     {
         JChatTextMessage message = JChatClientMessagePacket.parseTextMessage(packet);
 
         ClientApp.instance()
                 .getClientWindow()
                 .getChatRoomUI()
-                .addMessage(String.format("<%s> %s", message.getSender(), message.getMessage()));
+                .addMessage(ChatRoomMessagePanel.Type.USER_MESSAGE,
+                        String.format("<%s> %s", message.getSender(), message.getMessage()));
+    }
+
+    private void onTextServerMessageReceived(JChatTCPPacket packet)
+    {
+        JChatTextMessage message = JChatClientMessagePacket.parseTextMessage(packet);
+
+        ClientApp.instance()
+                .getClientWindow()
+                .getChatRoomUI()
+                .addMessage(ChatRoomMessagePanel.Type.SEVER_MESSAGE, message.getMessage());
     }
 
     private void onLoginAccepted()

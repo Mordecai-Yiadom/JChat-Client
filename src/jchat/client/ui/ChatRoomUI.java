@@ -25,7 +25,7 @@ public class ChatRoomUI implements JChatUIScreen
         {
             ClientApp.instance().getChatClient().sendMessage(messageTextField.getText());
 
-            addMessage(String.format(String.format("<%s> %s",
+            addMessage(ChatRoomMessagePanel.Type.USER_MESSAGE, String.format(String.format("<%s> %s",
                     ClientApp.instance().getChatClient().getUsername(),
                     messageTextField.getText())));
 
@@ -41,9 +41,9 @@ public class ChatRoomUI implements JChatUIScreen
     }
 
 
-    public void addMessage(String message)
+    public void addMessage(ChatRoomMessagePanel.Type type, String message)
     {
-        messagePanel.add(new ChatRoomMessagePanel(message));
+        messagePanel.add(new ChatRoomMessagePanel(type, message));
         messagePanel.repaint();
         messagePanel.revalidate();
     }
