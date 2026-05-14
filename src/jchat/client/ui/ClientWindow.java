@@ -9,6 +9,7 @@ public class ClientWindow extends JFrame
 
     private ChatRoomUI chatRoomUI;
     private LoginPage loginPage;
+    private RegistrationPage registrationPage;
 
     private JChatUIScreen CURRENT_SCREEN;
 
@@ -23,6 +24,7 @@ public class ClientWindow extends JFrame
 
         this.chatRoomUI = new ChatRoomUI();
         this.loginPage = new LoginPage();
+        this.registrationPage = new RegistrationPage();
 
         showLoginPage();
 
@@ -37,6 +39,11 @@ public class ClientWindow extends JFrame
     public LoginPage getLoginPage()
     {
         return loginPage;
+    }
+
+    public RegistrationPage getRegistrationPage()
+    {
+        return registrationPage;
     }
 
     private void setUIScreen(JChatUIScreen screen)
@@ -55,6 +62,11 @@ public class ClientWindow extends JFrame
     public void showChatRoomUI()
     {
         setUIScreen(chatRoomUI);
+    }
+
+    public void showRegistrationPage()
+    {
+        setUIScreen(registrationPage);
     }
 
 }

@@ -16,6 +16,7 @@ public class LoginPage implements JChatUIScreen
     private JPanel usernamePanel;
     private JButton submitButton;
     private JLabel loginStatusLabel;
+    private JButton createNewAccountButton;
 
     public LoginPage()
     {
@@ -25,12 +26,23 @@ public class LoginPage implements JChatUIScreen
         {
             ClientApp.instance().start(usernameField.getText(), String.valueOf(passwordField.getPassword()));
         });
+
+        createNewAccountButton.addActionListener((event)->
+        {
+            ClientApp.instance().getClientWindow().showRegistrationPage();
+        });
     }
 
     @Override
     public Container root()
     {
         return root;
+    }
+
+    public void displayAccountCreationSuccessful()
+    {
+        loginStatusLabel.setText("Account Successfully Created!");
+        loginStatusLabel.setForeground(Color.GREEN);
     }
 
     public void displayLoginRejected()

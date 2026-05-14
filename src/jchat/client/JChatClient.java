@@ -1,11 +1,9 @@
 package jchat.client;
 
 import jchat.core.net.entity.JChatTextMessage;
-import jchat.core.net.entity.JChatUserLoginCredentials;
+import jchat.core.net.entity.JChatUserCredentials;
 import jchat.core.net.protocol.JChatProtocolUtil;
-import jchat.core.net.protocol.tcp.JChatClientLoginRequestPacket;
-import jchat.core.net.protocol.tcp.JChatClientMessagePacket;
-import jchat.core.net.protocol.tcp.JChatTCPPacket;
+import jchat.core.net.protocol.tcp.*;
 
 import java.io.*;
 import java.net.*;
@@ -15,20 +13,31 @@ import java.nio.channels.Selector;
 import java.nio.channels.SocketChannel;
 import java.util.Map;
 
-public class JChatClient {
+public class JChatClient
+{
     private SocketChannel socket;
     private boolean isRunning;
     private Selector selector;
     private Thread clientThread;
-    private JChatUserLoginCredentials credentials;
+    private JChatUserCredentials credentials;
     private boolean isLoggedIn;
+    private boolean doRegistrationFirst;
 
 
-    public JChatClient(JChatUserLoginCredentials credentials)
+    public JChatClient(JChatUserCredentials credentials)
     {
         this.credentials = credentials;
-        isRunning = false;
+        this.isRunning = false;
+        this.doRegistrationFirst = false;
+        this.isLoggedIn = false;
     }
+
+    public JChatClient(JChatUserCredentials credentials, boolean doRegistrationFirst)
+    {
+        this(credentials);
+        this.doRegistrationFirst = doRegistrationFirst;
+    }
+
 
     public String getUsername()
     {
@@ -93,7 +102,10 @@ public class JChatClient {
             socket.configureBlocking(false);
             socket.register(selector, SelectionKey.OP_READ);
 
-            sendLoginRequest();
+            if(doRegistrationFirst)
+                sendAccountRegistrationRequest(credentials.username(), credentials.password());
+            else
+                sendLoginRequest();
 
         } catch (Exception ex)
         {
@@ -155,6 +167,14 @@ public class JChatClient {
                     case CLIENT_CONNECTION_REJECTED_RESPONSE:
                         onLoginRejected();
                         break;
+
+                    case USER_ACCOUNT_REGISTRATION_SUCCESSFUL:
+                        onAccountRegistrationSuccessful();
+                        break;
+
+                    case USER_ACCOUNT_REGISTRATION_FAILED:
+                        onAccountRegistrationFailed(packet);
+                        break;
                 }
             }
         }
@@ -169,6 +189,18 @@ public class JChatClient {
         JChatProtocolUtil.sendJChatTCPPacket(
                 JChatClientLoginRequestPacket.create(credentials.username(), credentials.password()),
                 socket);
+    }
+
+    private void sendAccountRegistrationRequest(String username, String password)
+    {
+        try
+        {
+            JChatProtocolUtil.sendJChatTCPPacket(JChatUserRegistrationRequestPacket.create(username, password), socket);
+        }
+        catch (IOException ex)
+        {
+            ex.printStackTrace();
+        }
     }
 
     private void onTextMessageReceived(JChatTCPPacket packet)
@@ -199,5 +231,22 @@ public class JChatClient {
                 .displayLoginRejected();
 
         socket.close();
+    }
+
+    private void onAccountRegistrationSuccessful()
+    {
+        ClientApp.instance().getClientWindow().showLoginPage();
+        ClientApp.instance().getClientWindow().getLoginPage().displayAccountCreationSuccessful();
+    }
+
+    private void onAccountRegistrationFailed(JChatTCPPacket packet)
+    {
+       String failureReason = JChatUserRegistrationFailedPacket.parseFailureReason(packet);
+       ClientApp.instance()
+               .getClientWindow()
+               .getRegistrationPage()
+               .displayRegistrationFailure(failureReason);
+        stop();
+        System.out.printf("[Client INFO]: Failed to register new account because: \"%s\"\n", failureReason);
     }
 }
